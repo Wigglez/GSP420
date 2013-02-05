@@ -1,13 +1,45 @@
-#include "Typedefs.h"
-
 #ifndef MATHPHYSICS_CORE
 #define MATHPHYSICS_CORE
+
+#include "Typedefs.h"
+#include <assert.h>
+#include <math.h>
+
+const double PI = 3.14159265358979323846 ;
+
+// these are to make the code more readable. Use vector[X] instead of vector[0], etc. 
+const int X = 0 ;
+const int Y = 1 ;
+const int Z = 2 ;
+const int W = 3 ;
+
+inline double Degrees_to_Radians( double degrees )
+{
+	return degrees / 180.0 * PI ;
+}
+
+inline double Radians_to_Degrees( double radians )
+{
+	return radians * 180.0 / PI ;
+}
+
+// Because floating point computation contains numerical error, comparing to 0 is not adequate
+// Instead, we need to compare to a number close to 0, which we call "epsilon".
+// From experience choosing epsilon somewhere between 1.0e-4 and 1.0e-7 is sufficient, but depends on the details of the computation involved.
+
+const Scalar epsilon = Scalar( 1.0e-5 ) ;
+
+// use this instead of comparing to zero; for example, when avoiding a divide-by-zero
+inline bool Within_Epsilon( double value )
+{
+	return value < epsilon && value > -epsilon ;
+}
 
 class Vector2D
 {
 public:
 
-  Vector2D();
+	Vector2D();
 	Vector2D( const Vector2D& ) ;	// copy constructor
 	Vector2D( Scalar element[2] ) ; // initialize with an array
 	Vector2D( double x, double y ) ;
@@ -157,7 +189,7 @@ class Matrix2D
 {
 public:
 	Matrix2D(void) ;						// set to the zero matrix
-	Matrix2D( Vector2D Bx, Vector2D By ) ;  // set mtrix columns to these 2 basis vectors
+	Matrix2D( Vector2D Bx, Vector2D By ) ;  // set matrix columns to these 2 basis vectors
 
 	void Identity() ;						// set to the identity matrix
 	void Scaling( Vector2D scaling ) ;		// set to a scaling matrix
@@ -290,11 +322,14 @@ private:
 	Vector4D m[dimension] ;
 };
 
-class Point 
-{
+class Point {
  public:
-   static Point rectangular(float x, float y);      // Rectangular coordinates
+   static Point rectangular(float x, float y);      // Rectangular coord's
    static Point polar(float radius, float angle);   // Polar coordinates
-};
+
+ private:
+   Point(float x, float y);     // Rectangular coordinates
+   float x_, y_;
+ };
 
 #endif
