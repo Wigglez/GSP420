@@ -1,3 +1,6 @@
+#ifndef __TYPEDEFS_H__
+#define __TYPEDEFS_H__
+
 #include <string>
 #include <Windows.h>
 #include <list>
@@ -21,5 +24,9 @@ typedef wchar_t Wchar_t;
 typedef unsigned int uInt;
 typedef unsigned __int64 uInt64;
 typedef unsigned long uLong;
+typedef unsigned short uShort;
 typedef FILE File;
 typedef COORD Coord;
+typedef float Scalar;
+
+#endif
