@@ -15,6 +15,7 @@
 ////////////////////////////////////////////
 #define MAX_SOUND_CHANNELS 100
 #define INVALID_SOUND_INDEX 0
+#define INVALID_SOUND_CHANNEL -1
 
 ////////////////////////////////////////////
 // Name: SOUND_TYPE
@@ -50,7 +51,6 @@ public:
 	SOUND_TYPE soundType; // The type of sound the file is (looped or not)
 };
 
-
 ////////////////////////////////////////////
 // Name: SoundManager
 // Type: class
@@ -70,6 +70,14 @@ public:
 		static SoundManager soundMgr;
 		return soundMgr;
 	}
+
+	////////////////////////////////////////////
+	// Name: Shutdown
+	// Type: Void
+	// Parameters: None
+	// Description: Releases any objects that may still exist
+	////////////////////////////////////////////
+	Void Shutdown();
 
 	////////////////////////////////////////////
 	// Name: Initialize
@@ -106,35 +114,67 @@ public:
 	////////////////////////////////////////////
 	// Name: PlaySound
 	// Type: Void
-	// Parameters: None
+	// Parameters: Int, Int
 	// Description: Plays a given sound
 	////////////////////////////////////////////
-	Void PlaySound();
+	Void PlaySound(Int soundIndex, Int *channelIndex);
 
 	////////////////////////////////////////////
 	// Name: StopSound
 	// Type: Void
-	// Parameters: None
+	// Parameters: Int
 	// Description: Stops a given sound
 	////////////////////////////////////////////
-	Void StopSound();
+	Void StopSound(Int *channelIndex);
+
+	////////////////////////////////////////////
+	// Name: FindSound
+	// Type: Int
+	// Parameters: String, SOUND_TYPE
+	// Description: Verifies and returns the sound index
+	////////////////////////////////////////////
+	Int FindSound(String &fileName, SOUND_TYPE soundType);
+
+	////////////////////////////////////////////
+	// Name: StopAllSounds
+	// Type: Void
+	// Parameters: 
+	// Description: Stops all sounds
+	////////////////////////////////////////////
+	Void StopAllSounds();
 
 	////////////////////////////////////////////
 	// Name: GetSoundLength
 	// Type: Float
-	// Parameters: None
+	// Parameters: Int
 	// Description: Returns sound length in seconds
 	////////////////////////////////////////////
-	Float GetSoundLength();
+	Float GetSoundLength(Int soundIndex);
+
+	////////////////////////////////////////////
+	// Name: GetSoundInstance
+	// Type: SoundInstance
+	// Parameters: Int
+	// Description: Gets the current sound instance
+	////////////////////////////////////////////
+	SoundInstance *GetSoundInstance(Int soundIndex);
 
 protected:
 	////////////////////////////////////////////
 	// Variables
 	////////////////////////////////////////////
 	Int nextSoundInstanceIndex; // Counter for SoundInstance
+	typedef std::vector<SoundInstance*> SoundInstanceVector;
+	typedef SoundInstanceVector::iterator SoundInstanceVectorItr;
+
+	SoundInstanceVector *soundInstanceVector;
+
 	FMOD::Channel *fchannel;
 	FMOD::System *fsystem;
 	FMOD::Sound *fsound;
+
+	FMOD_RESULT result;
+
 
 private:
 	////////////////////////////////////////////
@@ -165,18 +205,26 @@ private:
 	// Name: SoundManager
 	// Type: None
 	// Parameters: None
-	// Description: Destructor that releases any objects that may still exist
+	// Description: Destructor
 	////////////////////////////////////////////
-	~SoundManager();
+	~SoundManager() {};
+
+	////////////////////////////////////////////
+	// Name: IncrementNextSoundInstanceIndex
+	// Type: Void
+	// Parameters: None
+	// Description: Deals with sound instance indexes
+	////////////////////////////////////////////
+	Void IncrementNextSoundInstanceIndex();
 
 	////////////////////////////////////////////
 	// FMOD Callbacks
 	// Description: Currently unused
 	////////////////////////////////////////////
-	//static FMOD_RESULT F_CALLBACK fmodFileOpenCallback(const Char *fileName, Int unicode, uInt *filesize, Void **handle, Void **userdata);
-	//static FMOD_RESULT F_CALLBACK fmodFileCloseCallback(Void *handle, Void *userdata);
-	//static FMOD_RESULT F_CALLBACK fmodFileReadCallback(Void *handle, Void *buffer, uInt sizebytes, uInt *bytesread, Void *userdata);
-	//static FMOD_RESULT F_CALLBACK fmodFileSeekCallback(Void *handle, uInt pos, Void *userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileOpenCallback(const Char *fileName, Int unicode, uInt *filesize, Void **handle, Void **userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileCloseCallback(Void *handle, Void *userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileReadCallback(Void *handle, Void *buffer, uInt sizebytes, uInt *bytesread, Void *userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileSeekCallback(Void *handle, uInt pos, Void *userdata);
 };
 
 #endif
