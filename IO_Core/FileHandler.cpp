@@ -368,8 +368,9 @@ Int FileHandler::Seek(FilePointer Stream, Long offset, Int origin)
 
 	Int result;
 	
-	if(origin > end)
+	if(origin > END)
 	{
+		result = EOF;
 		printf("Error: Invalid parameter origin", origin);
 		return result;
 	}
@@ -377,8 +378,8 @@ Int FileHandler::Seek(FilePointer Stream, Long offset, Int origin)
 	{
 		switch(origin)
 		{
-		case begining:
-			result = fseek(Stream.fp, offset, begining);
+		case BEGINING:
+			result = fseek(Stream.fp, offset, BEGINING);
 			if(result)
 			{
 				/////////////////////////////////////////
@@ -392,8 +393,8 @@ Int FileHandler::Seek(FilePointer Stream, Long offset, Int origin)
 				return result;
 			}
 			break;
-		case current:
-			result = fseek(Stream.fp, offset, current);
+		case CURRENT:
+			result = fseek(Stream.fp, offset, CURRENT);
 			if(result)
 			{
 				/////////////////////////////////////////
@@ -407,8 +408,8 @@ Int FileHandler::Seek(FilePointer Stream, Long offset, Int origin)
 				return result;
 			}
 			break;
-		case end:
-			result = fseek(Stream.fp, offset, end);
+		case END:
+			result = fseek(Stream.fp, offset, END);
 			if(result)
 			{
 				/////////////////////////////////////////

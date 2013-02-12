@@ -4,6 +4,9 @@
 #include "Typedefs.h"
 #include <stdio.h>
 #include <io.h>
+#include <iostream>
+
+
 class FileHandler
 {
 private:
@@ -12,6 +15,13 @@ private:
 protected:
 
 public:
+	enum origin
+	{
+		BEGINING = SEEK_SET,
+		CURRENT = SEEK_CUR,
+		END = SEEK_END,
+	
+	};
 	//////////////////////////////////////////////////////////////////////////
 	// Name:		FileHandler
 	// Parameters:	None
@@ -98,6 +108,9 @@ public:
 	// Parameters:  (FileDescriptor, Long, Int)
 	// Return:		Int, Long
 	// Description:	Seeks a File
+	//origin must be one of the following constants: SEEK_CUR(Seeks From current Location)
+    //												 SEEK_END(Seeks From the End of File)
+    //												 SEEK_SET(Seeks From the begining of the file 
 	//////////////////////////////////////////////////////////////////////////
 	Int Seek(FilePointer Stream, Long offset, Int origin);
 	Long Seek(FileDescriptor fd, Long offset, Int origin);
@@ -136,6 +149,7 @@ private:
 	friend class FileDescriptor;
 	friend class FileHandler;
 	File* fp;
+	FilePointer* file;
 protected:
 public:
 	//////////////////////////////////////////////////////////////////////////
@@ -152,6 +166,7 @@ public:
 	// Description:	Default Destructor
 	//////////////////////////////////////////////////////////////////////////
 	~FilePointer();
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
