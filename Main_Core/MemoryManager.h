@@ -1,4 +1,4 @@
-#include "Typedef.h"
+#include "Typedefs.h"
 //#include <stdlib.h>
 //#include <stdio.h>
 #include <malloc.h>
@@ -29,26 +29,26 @@ public:
 // Below is coding for the source code.  
 // I apologize that there isn't much here, but commented out examples and just the constructor and destructor
 
-#include "Typedef.h"
-//#include <stdlib.h>
-//#include <stdio.h>
-#include <malloc.h>
-#include "MemoryManager.h"
+//#include "Typedef.h"
+////#include <stdlib.h>
+////#include <stdio.h>
+//#include <malloc.h>
+//#include "MemoryManager.h"
 
 
 
-MemoryManager()  //constructor
-  :str(NULL),
-    size(0)
-{
-
-}
-
-
-~MemoryManager();  //destructor
-{
-	delete [] 
-};
+//MemoryManager()  //constructor
+//  :str(NULL),
+//    size(0)
+//{
+//
+//}
+//
+//
+//~MemoryManager();  //destructor
+//{
+//	delete [] 
+//};
 
 
 
