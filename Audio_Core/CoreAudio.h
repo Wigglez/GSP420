@@ -8,7 +8,11 @@
 // Includes
 ////////////////////////////////////////////
 #include "Typedefs.h"
+#include "CoreIO.h"
+
 #include <fmod.hpp>
+#include <fmod_errors.h>
+#include <assert.h>
 
 ////////////////////////////////////////////
 // Definitions
@@ -16,6 +20,8 @@
 #define MAX_SOUND_CHANNELS 100
 #define INVALID_SOUND_INDEX 0
 #define INVALID_SOUND_CHANNEL -1
+#define INITIAL_VECTOR_SIZE 100
+#define INCREASE_VECTOR_SIZE 20
 
 ////////////////////////////////////////////
 // Name: SOUND_TYPE
@@ -37,18 +43,43 @@ typedef enum {
 class SoundInstance {
 public:
 	////////////////////////////////////////////
+	// Variables
+	////////////////////////////////////////////
+	String fileName; // The current sound instance's fileName
+	SOUND_TYPE soundType; // The type of sound the file is (looped or not)
+	FMOD::Sound *fsound;
+
+	////////////////////////////////////////////
 	// Name: Clear
 	// Type: Void
 	// Parameters: None
 	// Description: Clears the current sound instances in use
 	////////////////////////////////////////////
 	Void Clear();
+};
 
-	////////////////////////////////////////////
-	// Variables
-	////////////////////////////////////////////
-	String fileName; // The current sound instance's fileName
-	SOUND_TYPE soundType; // The type of sound the file is (looped or not)
+////////////////////////////////////////////
+// Name: ISoundManager
+// Type: class
+// Description: Interface for the SoundManager
+// Singleton: false
+////////////////////////////////////////////
+class ISoundManager {
+protected:
+	ISoundManager() {} // Default constructor
+	ISoundManager(const ISoundManager &o); // Copy constructor
+	const ISoundManager &operator=(const ISoundManager &o); // Assignment
+public:
+	virtual ~ISoundManager() {}
+	
+	virtual Int CreateSound(String &fileName) = 0;
+	virtual Int CreateLoopedSound(String &fileName) = 0;
+	virtual Void PlaySound(Int soundIndex, Int *channelIndex) = 0;
+	virtual Void StopSound(Int *channelIndex) = 0;
+	virtual Void StopAllSounds() = 0;
+	virtual Float GetSoundLength(Int soundIndex) = 0;
+	
+
 };
 
 ////////////////////////////////////////////
@@ -57,7 +88,7 @@ public:
 // Description: Manages sounds
 // Singleton: true
 ////////////////////////////////////////////
-class SoundManager {
+class SoundManager : public ISoundManager {
 public:
 	////////////////////////////////////////////
 	// Name: &GetInstance
@@ -171,12 +202,9 @@ protected:
 
 	FMOD::Channel *fchannel;
 	FMOD::System *fsystem;
-	FMOD::Sound *fsound;
 
 	FMOD_RESULT result;
 
-
-private:
 	////////////////////////////////////////////
 	// Name: SoundManager
 	// Type: None
@@ -186,28 +214,12 @@ private:
 	SoundManager() {}
 
 	////////////////////////////////////////////
-	// Name: SoundManager
-	// Type: None
-	// Parameters: const
-	// Description: Helper function for singleton
-	////////////////////////////////////////////
-	SoundManager(const SoundManager&); 
-
-	////////////////////////////////////////////
-	// Name: SoundManager
-	// Type: None
-	// Parameters: const
-	// Description: Allows &GetInstance to be tagged to the SoundManager
-	////////////////////////////////////////////
-	SoundManager& operator=(const SoundManager&);
-
-	////////////////////////////////////////////
-	// Name: SoundManager
-	// Type: None
+	// Name: ~SoundManager
+	// Type: virtual
 	// Parameters: None
 	// Description: Destructor
 	////////////////////////////////////////////
-	~SoundManager() {};
+	virtual ~SoundManager() {}
 
 	////////////////////////////////////////////
 	// Name: IncrementNextSoundInstanceIndex
@@ -225,6 +237,9 @@ private:
 	static FMOD_RESULT F_CALLBACK fmodFileCloseCallback(Void *handle, Void *userdata);
 	static FMOD_RESULT F_CALLBACK fmodFileReadCallback(Void *handle, Void *buffer, uInt sizebytes, uInt *bytesread, Void *userdata);
 	static FMOD_RESULT F_CALLBACK fmodFileSeekCallback(Void *handle, uInt pos, Void *userdata);
+
+private:
+	
 };
 
 #endif
