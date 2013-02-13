@@ -8,12 +8,179 @@
 ////////////////////////////////////////////
 Void ErrorCheck(FMOD_RESULT result)
 {
-	if (result != FMOD_OK)
-	{
+	if (result != FMOD_OK) {
 		printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
 		exit(-1);
 	}
 } // ErrorCheck
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//**************************************************************************************************//
+//DEVSOUNDMANAGER***********************************************************************************//
+//**************************************************************************************************//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////
+// Get sound manager's instance for devmanager usage
+////////////////////////////////////////////
+DevSoundManager::DevSoundManager() {
+	sndMgr = &sndMgr->GetInstance();
+}
+
+////////////////////////////////////////////
+// Designate a sound type of 2D sound to a given sound
+////////////////////////////////////////////
+Int DevSoundManager::CreateSound(String &fileName) {
+	
+	//printf("DevSoundManager::CreateSound success\n");
+
+	return sndMgr->CreateSound(fileName, SOUND_TYPE_2D_SOUND);
+} // DevSoundManager::CreateSound
+
+////////////////////////////////////////////
+// Designate a sound type of 2D looped sound to a given sound
+////////////////////////////////////////////
+Int DevSoundManager::CreateLoopedSound(String &fileName) {
+
+	//printf("DevSoundManager::CreateLoopedSound success\n");
+
+	return sndMgr->CreateSound(fileName, SOUND_TYPE_2D_SOUND_LOOPED);
+} // DevSoundManager::CreateLoopedSound
+
+////////////////////////////////////////////
+// Play a given sound
+////////////////////////////////////////////
+Void DevSoundManager::PlaySound(Int soundIndex, Int *channelIndex) {
+	Bool isPlaying;
+	Int channelIndexTemp;
+	SoundInstance *soundInstance;
+
+	if(soundIndex == INVALID_SOUND_INDEX)
+		return;
+
+	if(channelIndex)
+		channelIndexTemp = *channelIndex;
+	else
+		channelIndexTemp = INVALID_SOUND_CHANNEL;
+
+	assert((soundIndex > 0) && (soundIndex < (Int)sndMgr->soundInstanceVector->capacity()));
+
+	if(channelIndexTemp != INVALID_SOUND_CHANNEL) {
+		sndMgr->result = sndMgr->fsystem->getChannel(channelIndexTemp, &sndMgr->fchannel);
+		ErrorCheck(sndMgr->result);
+
+		if(sndMgr->result == FMOD_OK) {
+			// Check the channel to see if the sound is already playing
+			sndMgr->result = sndMgr->fchannel->isPlaying(&isPlaying);
+			ErrorCheck(sndMgr->result);
+
+			if(sndMgr->result == FMOD_OK && isPlaying == true)
+				return; // This sound is clearly already playing
+		}
+	}
+
+	soundInstance = sndMgr->soundInstanceVector->at(soundIndex);
+
+	// Start the sound paused (the file is not started yet)
+	sndMgr->result = sndMgr->fsystem->playSound(FMOD_CHANNEL_FREE, soundInstance->fsound, true, &sndMgr->fchannel);
+	ErrorCheck(sndMgr->result);
+
+	// If the sound can't play the sound, it becomes invalid
+	if(sndMgr->result != FMOD_OK) {
+		if(channelIndex)
+			*channelIndex = INVALID_SOUND_CHANNEL;
+		return;
+	}
+
+	sndMgr->fchannel->getIndex(&channelIndexTemp);
+
+	// Make sure the volume is consistent unless changed otherwise
+	sndMgr->result = sndMgr->fchannel->setVolume(1.0);
+	ErrorCheck(sndMgr->result);
+
+	// The sound can finally start
+	sndMgr->result = sndMgr->fchannel->setPaused(false);
+	ErrorCheck(sndMgr->result);
+
+	if(channelIndex)
+		*channelIndex = channelIndexTemp;
+
+	//printf("DevSoundManager::PlaySound success\n");
+} // DevSoundManager::PlaySound
+
+////////////////////////////////////////////
+// Stop an active sound
+////////////////////////////////////////////
+Void DevSoundManager::StopSound(Int *channelIndex) {
+	if(*channelIndex == INVALID_SOUND_CHANNEL)
+		return;
+
+	// Get the currently active channel
+	sndMgr->fsystem->getChannel(*channelIndex, &sndMgr->fchannel);
+
+	// Stops the active channel
+	sndMgr->fchannel->stop();
+
+	// Set the sound channel invalid
+	*channelIndex = INVALID_SOUND_CHANNEL;
+
+	//printf("DevSoundManager::StopSound success\n");
+} // DevSoundManager::StopSound
+
+////////////////////////////////////////////
+// Stop all active sounds
+////////////////////////////////////////////
+Void DevSoundManager::StopAllSounds() {
+	Int channelIndex;
+	FMOD::Channel *nextChannel;
+
+	for(channelIndex = 0; channelIndex < MAX_SOUND_CHANNELS; channelIndex++) {
+		// Get the currently active channel
+		sndMgr->result = sndMgr->fsystem->getChannel(channelIndex, &nextChannel);
+		ErrorCheck(sndMgr->result);
+
+		if((sndMgr->result == FMOD_OK) && (nextChannel != NULL))
+			// Stops the active channel
+			nextChannel->stop();
+	}
+
+	//printf("DevSoundManager::StopAllSounds success\n");
+} // DevSoundManager::StopAllSounds
+
+////////////////////////////////////////////
+// SoundManager can get the length of a sound
+////////////////////////////////////////////
+Float DevSoundManager::GetSoundLength(Int soundIndex) {
+	uInt soundLength; // length in milliseconds
+	SoundInstance *soundInstance;
+
+	if(soundIndex == INVALID_SOUND_INDEX)
+		return 0.0;
+
+	assert((soundIndex > 0) && (soundIndex < (Int)sndMgr->soundInstanceVector->capacity()));
+
+	soundInstance = sndMgr->soundInstanceVector->at(soundIndex);
+	if(soundInstance) {
+		sndMgr->result = soundInstance->fsound->getLength(&soundLength, FMOD_TIMEUNIT_MS);
+		ErrorCheck(sndMgr->result);
+
+		if(sndMgr->result != FMOD_OK)
+			printf("GetSoundLength could not get length\n");
+
+	} else {
+		printf("GetSoundLength could not find soundInstance\n");
+	}
+
+	//printf("DevSoundManager::GetSoundLength success\n");
+
+	return (Float)soundLength / 1000.0f;
+} // DevSoundManager::GetSoundLength
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//**************************************************************************************************//
+//SOUNDINSTANCE*************************************************************************************//
+//**************************************************************************************************//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////
 // Clears the SoundInstance
@@ -22,7 +189,13 @@ Void SoundInstance::Clear() {
 	fileName.clear();
 	soundType = SOUND_TYPE_INVALID;
 	fsound = NULL;
-}
+} // SoundInstance::Clear
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//**************************************************************************************************//
+//SOUNDMANAGER**************************************************************************************//
+//**************************************************************************************************//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////
 // Shutdown can be called to handle the shutdown
@@ -46,6 +219,8 @@ Void SoundManager::Shutdown() {
 
 	// No longer need the soundInstanceVector
 	delete soundInstanceVector;
+
+	//printf("SoundManager::Shutdown success");
 } // SoundManager::Shutdown
 
 ////////////////////////////////////////////
@@ -60,6 +235,21 @@ Void SoundManager::Initialize() {
 	Int numdrivers;
 	Char name[256];
 
+	////////////////////////////////////////////
+	// Since the constructor isn't being used
+	// the init will have to take care of some initialization for variables
+	////////////////////////////////////////////
+	fsystem = NULL;
+	soundInstanceVector = new SoundInstanceVector;
+	nextSoundInstanceIndex = 0;
+
+	// INITIAL_VECTOR_SIZE can be started off from soundInstanceVectors and can scale from here
+	soundInstanceVector->resize(INITIAL_VECTOR_SIZE);
+	for(Int vectorIndex = 0; vectorIndex < INITIAL_VECTOR_SIZE; vectorIndex++) {
+		soundInstanceVector->at(vectorIndex) = new SoundInstance;
+		soundInstanceVector->at(vectorIndex)->Clear();
+	}
+
 	// Create the system object
 	result = FMOD::System_Create(&fsystem);
 	ErrorCheck(result);
@@ -67,8 +257,9 @@ Void SoundManager::Initialize() {
 	result = fsystem->getVersion(&version);
 	ErrorCheck(result);
 
-	if(version < 00044006) {
-		printf("Error! You are using an old version of FMOD %08x. This program requires %08x\n", version, 00044006);
+	// My version = 00044006
+	if(version < FMOD_VERSION) {
+		printf("Error! You are using an old version of FMOD %08x. This program requires %08x\n", version, FMOD_VERSION);
 		return;
 	}
 
@@ -117,49 +308,17 @@ Void SoundManager::Initialize() {
 	ErrorCheck(result);
 
 	// Enable the callbacks for file management
-	result = fsystem->setFileSystem(&fmodFileOpenCallback, &fmodFileCloseCallback, &fmodFileReadCallback, &fmodFileSeekCallback, NULL, NULL, 2048);
+	//result = fsystem->setFileSystem(&fmodFileOpenCallback, &fmodFileCloseCallback, &fmodFileReadCallback, &fmodFileSeekCallback, NULL, NULL, 2048);
 
-	////////////////////////////////////////////
-	// Since the constructor isn't being used
-	// the init will have to take care of some initialization for variables
-	////////////////////////////////////////////
-	fsystem = NULL;
-	soundInstanceVector = new SoundInstanceVector;
-	nextSoundInstanceIndex = 0;
-
-	// INITIAL_VECTOR_SIZE can be started off from soundInstanceVectors and can scale from here
-	soundInstanceVector->resize(INITIAL_VECTOR_SIZE);
-	for(Int vectorIndex = 0; vectorIndex < INITIAL_VECTOR_SIZE; vectorIndex++) {
-		soundInstanceVector->at(vectorIndex) = new SoundInstance;
-		soundInstanceVector->at(vectorIndex)->Clear();
-	}
-
-	printf("SoundManager initialized\n");
+	//printf("SoundManager::Initialize success\n");
 } // SoundManager::Initialize
-
-////////////////////////////////////////////
-// Designate a sound type of 2D sound to a given sound
-////////////////////////////////////////////
-Int SoundManager::CreateSound(String &fileName) {
-	printf("CreateSound success\n");
-	return CreateSound(fileName, SOUND_TYPE_2D_SOUND);
-} // SoundManager::CreateSound
-
-////////////////////////////////////////////
-// Designate a sound type of 2D looped sound to a given sound
-////////////////////////////////////////////
-Int SoundManager::CreateLoopedSound(String &fileName) {
-	printf("CreateLoopedSound success\n");
-	return CreateSound(fileName, SOUND_TYPE_2D_SOUND_LOOPED);
-} // SoundManager::CreateLoopedSound
 
 ////////////////////////////////////////////
 // The setup for using a sound
 ////////////////////////////////////////////
-Int  SoundManager::CreateSound(String &fileName, SOUND_TYPE soundType) {
+Int SoundManager::CreateSound(String &fileName, SOUND_TYPE soundType) {
 	SoundInstance *newSoundInstance;
 	Int soundIndex;
-	FMOD::Sound *sound;
 
 	soundIndex = FindSound(fileName, soundType);
 	if(soundIndex != INVALID_SOUND_INDEX)
@@ -174,19 +333,18 @@ Int  SoundManager::CreateSound(String &fileName, SOUND_TYPE soundType) {
 	switch(soundType) {
 	case SOUND_TYPE_2D_SOUND:
 		{
-			result = fsystem->createStream((const Char *)newSoundInstance, FMOD_DEFAULT, 0, &newSoundInstance->fsound);
-			printf("Sound created\n");
+			result = fsystem->createStream(newSoundInstance->fileName.c_str(), FMOD_DEFAULT, 0, &newSoundInstance->fsound);
+			//printf("Sound created\n");
 			break;
-
 		}
 	case SOUND_TYPE_2D_SOUND_LOOPED:
 		{
-			result = fsystem->createStream((const Char *)newSoundInstance, FMOD_LOOP_NORMAL | FMOD_2D | FMOD_HARDWARE, 0, &newSoundInstance->fsound);
-			printf("Looped sound created\n");
+			result = fsystem->createStream(newSoundInstance->fileName.c_str(), FMOD_LOOP_NORMAL | FMOD_2D | FMOD_HARDWARE, 0, &newSoundInstance->fsound);
+			//printf("Looped sound created\n");
 			break;
 		}
 	default:
-		printf("Could not load sound '", fileName, "' - invalid sound type\n");
+		printf("Could not load sound due to invalid sound type\n");
 		return INVALID_SOUND_INDEX;
 	} // end case
 
@@ -194,117 +352,22 @@ Int  SoundManager::CreateSound(String &fileName, SOUND_TYPE soundType) {
 	ErrorCheck(result);
 
 	if(result != FMOD_OK) {
-		printf("Could not load sound '", fileName, "' \n");
+		printf("Could not load sound\n");
 		return INVALID_SOUND_INDEX;
 	}
 
-//	newSoundInstance->fsound = sound;
-
-	printf("CreateSound success\n");
+	//printf("SoundManager::CreateSound success\n");
 	return nextSoundInstanceIndex;
 } // SoundManager::CreateSound
 
 ////////////////////////////////////////////
-// Play a given sound
+// Get the current sound instance 
 ////////////////////////////////////////////
-Void SoundManager::PlaySound(Int soundIndex, Int *channelIndex) {
-	Bool isPlaying;
-	Int channelIndexTemp;
-	SoundInstance *soundInstance;
+SoundInstance *SoundManager::GetSoundInstance(Int soundIndex) {
+	//printf("SoundManager::GetSoundInstance success\n");
 
-	if(soundIndex == INVALID_SOUND_INDEX)
-		return;
-
-	if(channelIndex)
-		channelIndexTemp = *channelIndex;
-	else
-		channelIndexTemp = INVALID_SOUND_CHANNEL;
-
-	assert((soundIndex > 0) && (soundIndex < (Int)soundInstanceVector->capacity()));
-
-	if(channelIndexTemp != INVALID_SOUND_CHANNEL) {
-		result = fsystem->getChannel(channelIndexTemp, &fchannel);
-
-		if(result == FMOD_OK) {
-			// Check the channel to see if the sound is already playing
-			result = fchannel->isPlaying(&isPlaying);
-			ErrorCheck(result);
-
-			if(result == FMOD_OK && isPlaying == true)
-				return; // This sound is clearly already playing
-		}
-	}
-
-	soundInstance = soundInstanceVector->at(soundIndex);
-
-	// Start the sound paused (the file is not started yet)
-	result = fsystem->playSound(FMOD_CHANNEL_FREE, soundInstance->fsound, true, &fchannel);
-	ErrorCheck(result);
-
-	// If the sound can't play the sound, it becomes invalid
-	if(result != FMOD_OK) {
-		if(channelIndex)
-			*channelIndex = INVALID_SOUND_CHANNEL;
-		return;
-	}
-
-	fchannel->getIndex(&channelIndexTemp);
-
-	// Make sure the volume is consistent unless changed otherwise
-	result = fchannel->setVolume(1.0);
-	ErrorCheck(result);
-
-	// The sound can finally start
-	result = fchannel->setPaused(false);
-	ErrorCheck(result);
-
-	if(channelIndex)
-		*channelIndex = channelIndexTemp;
-
-	printf("PlaySound success\n");
-} // SoundManager::PlaySound
-
-////////////////////////////////////////////
-// Stop an active sound
-////////////////////////////////////////////
-Void SoundManager::StopSound(Int *channelIndex) {
-	if(*channelIndex == INVALID_SOUND_CHANNEL)
-		return;
-
-	// Get the currently active channel
-	fsystem->getChannel(*channelIndex, &fchannel);
-
-	// Stops the active channel
-	fchannel->stop();
-
-	// Set the sound channel invalid
-	*channelIndex = INVALID_SOUND_CHANNEL;
-
-	printf("StopSound success\n");
-} // SoundManager::StopSound
-
-////////////////////////////////////////////
-// Stop all active sounds
-////////////////////////////////////////////
-Void SoundManager::StopAllSounds() {
-	Int channelIndex;
-	FMOD::Channel *nextChannel;
-
-
-	for(channelIndex = 0; channelIndex < MAX_SOUND_CHANNELS; channelIndex++) {
-		// Get the currently active channel
-		result = fsystem->getChannel(channelIndex, &nextChannel);
-
-		if((result == FMOD_OK) && (nextChannel != NULL))
-			// Stops the active channel
-			nextChannel->stop();
-
-		// Set the sound channel invalid
-		channelIndex = INVALID_SOUND_CHANNEL;
-	}
-
-	printf("StopAllSounds success\n");
-} // SoundManager::StopAllSounds
+	return soundInstanceVector->at(soundIndex);
+} // SoundManager::GetSoundInstance
 
 // Finds the sound index
 Int SoundManager::FindSound(String &fileName, SOUND_TYPE soundType) {
@@ -318,46 +381,9 @@ Int SoundManager::FindSound(String &fileName, SOUND_TYPE soundType) {
 			return vectorIndex;
 	}
 
-	printf("FindSound success\n");
+	//printf("SoundManager::FindSound success\n");
 	return INVALID_SOUND_INDEX;
 } // SoundManager::FindSound
-
-////////////////////////////////////////////
-// SoundManager can get the length of a sound
-////////////////////////////////////////////
-Float SoundManager::GetSoundLength(Int soundIndex) {
-	uInt soundLength; // length in milliseconds
-	SoundInstance *soundInstance;
-
-	if(soundIndex == INVALID_SOUND_INDEX)
-		return 0.0;
-
-	assert((soundIndex > 0) && (soundIndex < (Int)soundInstanceVector->capacity()));
-
-	soundInstance = soundInstanceVector->at(soundIndex);
-	if(soundInstance) {
-		result = soundInstance->fsound->getLength(&soundLength, FMOD_TIMEUNIT_MS);
-		ErrorCheck(result);
-
-		if(result != FMOD_OK)
-			printf("GetSoundLength could not get length\n");
-
-	} else {
-		printf("GetSoundLength could not find soundInstance\n");
-	}
-
-	printf("GetSoundLength success\n");
-
-	return (Float)soundLength / 1000.0f;
-} // SoundManager::GetSoundLength
-
-////////////////////////////////////////////
-// Get the current sound instance 
-////////////////////////////////////////////
-SoundInstance *SoundManager::GetSoundInstance(Int soundIndex) {
-	printf("GetSoundInstance success\n");
-	return soundInstanceVector->at(soundIndex);
-} // SoundManager::GetSoundInstance
 
 ////////////////////////////////////////////
 // Deals with vectors to keep the the sound instance index incrementing
@@ -397,7 +423,7 @@ Void SoundManager::IncrementNextSoundInstanceIndex() {
 	delete(soundInstanceVector);
 	soundInstanceVector = newSoundInstanceVector;
 
-	printf("IncrementNextSoundInstanceIndex success\n");
+	//printf("SoundManager::IncrementNextSoundInstanceIndex success\n");
 } // SoundManager::IncrementNextSoundInstanceIndex
 
 ////////////////////////////////////////////
@@ -427,7 +453,7 @@ FMOD_RESULT SoundManager::fmodFileOpenCallback(const Char *fileName, Int unicode
 	// The file descriptor is used to get the file length
 	*filesize = fileHand.FileLength(fileDesc);
 
-	printf("fmodFileOpenCallback success\n");
+	//printf("fmodFileOpenCallback success\n");
 
 	return FMOD_OK;
 } // SoundManager::fmodFileOpenCallback
@@ -436,7 +462,7 @@ FMOD_RESULT SoundManager::fmodFileOpenCallback(const Char *fileName, Int unicode
 // Callback for closing
 ////////////////////////////////////////////
 FMOD_RESULT SoundManager::fmodFileCloseCallback(Void *handle, Void *userdata) {
-	printf("fmodFileCloseCallback success\n");
+	//printf("fmodFileCloseCallback success\n");
 	return FMOD_OK;
 } // SoundManager::fmodFileCloseCallback
 
@@ -460,7 +486,7 @@ FMOD_RESULT SoundManager::fmodFileReadCallback(Void *handle, Void *buffer, uInt 
 	if(*bytesRead == 0)
 		return FMOD_ERR_FILE_EOF;
 
-	printf("fmodFileReadCallback success\n");
+	//printf("fmodFileReadCallback success\n");
 
 	return FMOD_OK;
 } // SoundManager::fmodFileReadCallback
@@ -481,8 +507,7 @@ FMOD_RESULT SoundManager::fmodFileSeekCallback(Void *handle, uInt pos, Void *use
 	// Must seek from the beginning
 	fileSeek = fileHand.Seek(filePtrOpen, pos, 0);
 	
-	printf("fmodFileSeekCallback success\n");
+	//printf("fmodFileSeekCallback success\n");
 
 	return FMOD_OK;
 } // SoundManager::fmodFileSeekCallback
-

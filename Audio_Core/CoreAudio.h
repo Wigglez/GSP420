@@ -69,6 +69,7 @@ protected:
 	ISoundManager() {} // Default constructor
 	ISoundManager(const ISoundManager &o); // Copy constructor
 	const ISoundManager &operator=(const ISoundManager &o); // Assignment
+
 public:
 	virtual ~ISoundManager() {}
 	
@@ -78,17 +79,117 @@ public:
 	virtual Void StopSound(Int *channelIndex) = 0;
 	virtual Void StopAllSounds() = 0;
 	virtual Float GetSoundLength(Int soundIndex) = 0;
-	
+};
 
+////////////////////////////////////////////
+// Name: DevSoundManager
+// Type: class
+// Description: Sound management for developers
+// Singleton: true
+////////////////////////////////////////////
+class DevSoundManager : public ISoundManager {
+protected:
+	friend class SoundManager;
+	SoundManager *sndMgr;
+public:
+	////////////////////////////////////////////
+	// Name: DevSoundManager
+	// Type: None
+	// Parameters: None
+	// Description: Default constructor
+	////////////////////////////////////////////
+	DevSoundManager();
+
+	////////////////////////////////////////////
+	// Name: DevSoundManager
+	// Type: None
+	// Parameters: None
+	// Description: Default destructor
+	////////////////////////////////////////////
+	virtual ~DevSoundManager() {}
+
+	////////////////////////////////////////////
+	// Name: CreateSound
+	// Type: Int
+	// Parameters: String
+	// Description: Returns a sound that is not looped
+	////////////////////////////////////////////
+	Int CreateSound(String &fileName); 
+
+	////////////////////////////////////////////
+	// Name: CreateLoopedSound
+	// Type: Int
+	// Parameters: String
+	// Description: Returns a sound that is looped
+	////////////////////////////////////////////
+	Int CreateLoopedSound(String &fileName);
+
+	////////////////////////////////////////////
+	// Name: PlaySound
+	// Type: Void
+	// Parameters: Int, Int
+	// Description: Plays a given sound
+	////////////////////////////////////////////
+	Void PlaySound(Int soundIndex, Int *channelIndex);
+
+	////////////////////////////////////////////
+	// Name: StopSound
+	// Type: Void
+	// Parameters: Int
+	// Description: Stops a given sound
+	////////////////////////////////////////////
+	Void StopSound(Int *channelIndex);
+
+	////////////////////////////////////////////
+	// Name: StopAllSounds
+	// Type: Void
+	// Parameters: 
+	// Description: Stops all sounds
+	////////////////////////////////////////////
+	Void StopAllSounds();
+
+	////////////////////////////////////////////
+	// Name: GetSoundLength
+	// Type: Float
+	// Parameters: Int
+	// Description: Returns sound length in seconds
+	////////////////////////////////////////////
+	Float GetSoundLength(Int soundIndex);
 };
 
 ////////////////////////////////////////////
 // Name: SoundManager
 // Type: class
-// Description: Manages sounds
+// Description: Sound management for engine cores
 // Singleton: true
 ////////////////////////////////////////////
-class SoundManager : public ISoundManager {
+class SoundManager {
+protected:
+	////////////////////////////////////////////
+	// Name: SoundManager
+	// Type: None
+	// Parameters: None
+	// Description: Default constructor
+	////////////////////////////////////////////
+	SoundManager() {}
+
+	////////////////////////////////////////////
+	// Name: ~SoundManager
+	// Type: virtual
+	// Parameters: None
+	// Description: Destructor
+	////////////////////////////////////////////
+	virtual ~SoundManager() {}
+
+	////////////////////////////////////////////
+	// FMOD Callbacks
+	// Description: Currently unused
+	////////////////////////////////////////////
+	static FMOD_RESULT F_CALLBACK fmodFileOpenCallback(const Char *fileName, Int unicode, uInt *filesize, Void **handle, Void **userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileCloseCallback(Void *handle, Void *userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileReadCallback(Void *handle, Void *buffer, uInt sizebytes, uInt *bytesread, Void *userdata);
+	static FMOD_RESULT F_CALLBACK fmodFileSeekCallback(Void *handle, uInt pos, Void *userdata);
+
 public:
 	////////////////////////////////////////////
 	// Name: &GetInstance
@@ -117,22 +218,6 @@ public:
 	// Description: Creates the system object (audio device)
 	////////////////////////////////////////////
 	Void Initialize();
-	
-	////////////////////////////////////////////
-	// Name: CreateSound
-	// Type: Int
-	// Parameters: String
-	// Description: Returns a sound that is not looped
-	////////////////////////////////////////////
-	Int CreateSound(String &fileName); 
-
-	////////////////////////////////////////////
-	// Name: CreateLoopedSound
-	// Type: Int
-	// Parameters: String
-	// Description: Returns a sound that is looped
-	////////////////////////////////////////////
-	Int CreateLoopedSound(String &fileName);
 
 	////////////////////////////////////////////
 	// Name: CreateSound
@@ -141,22 +226,14 @@ public:
 	// Description: Sets up a sound for use
 	////////////////////////////////////////////
 	Int CreateSound(String &fileName, SOUND_TYPE soundType); 
-
+	
 	////////////////////////////////////////////
-	// Name: PlaySound
-	// Type: Void
-	// Parameters: Int, Int
-	// Description: Plays a given sound
-	////////////////////////////////////////////
-	Void PlaySound(Int soundIndex, Int *channelIndex);
-
-	////////////////////////////////////////////
-	// Name: StopSound
-	// Type: Void
+	// Name: GetSoundInstance
+	// Type: SoundInstance
 	// Parameters: Int
-	// Description: Stops a given sound
+	// Description: Gets the current sound instance
 	////////////////////////////////////////////
-	Void StopSound(Int *channelIndex);
+	SoundInstance *GetSoundInstance(Int soundIndex);
 
 	////////////////////////////////////////////
 	// Name: FindSound
@@ -167,30 +244,13 @@ public:
 	Int FindSound(String &fileName, SOUND_TYPE soundType);
 
 	////////////////////////////////////////////
-	// Name: StopAllSounds
+	// Name: IncrementNextSoundInstanceIndex
 	// Type: Void
-	// Parameters: 
-	// Description: Stops all sounds
+	// Parameters: None
+	// Description: Deals with sound instance indexes
 	////////////////////////////////////////////
-	Void StopAllSounds();
+	Void IncrementNextSoundInstanceIndex();
 
-	////////////////////////////////////////////
-	// Name: GetSoundLength
-	// Type: Float
-	// Parameters: Int
-	// Description: Returns sound length in seconds
-	////////////////////////////////////////////
-	Float GetSoundLength(Int soundIndex);
-
-	////////////////////////////////////////////
-	// Name: GetSoundInstance
-	// Type: SoundInstance
-	// Parameters: Int
-	// Description: Gets the current sound instance
-	////////////////////////////////////////////
-	SoundInstance *GetSoundInstance(Int soundIndex);
-
-protected:
 	////////////////////////////////////////////
 	// Variables
 	////////////////////////////////////////////
@@ -202,44 +262,7 @@ protected:
 
 	FMOD::Channel *fchannel;
 	FMOD::System *fsystem;
-
 	FMOD_RESULT result;
-
-	////////////////////////////////////////////
-	// Name: SoundManager
-	// Type: None
-	// Parameters: None
-	// Description: Default constructor
-	////////////////////////////////////////////
-	SoundManager() {}
-
-	////////////////////////////////////////////
-	// Name: ~SoundManager
-	// Type: virtual
-	// Parameters: None
-	// Description: Destructor
-	////////////////////////////////////////////
-	virtual ~SoundManager() {}
-
-	////////////////////////////////////////////
-	// Name: IncrementNextSoundInstanceIndex
-	// Type: Void
-	// Parameters: None
-	// Description: Deals with sound instance indexes
-	////////////////////////////////////////////
-	Void IncrementNextSoundInstanceIndex();
-
-	////////////////////////////////////////////
-	// FMOD Callbacks
-	// Description: Currently unused
-	////////////////////////////////////////////
-	static FMOD_RESULT F_CALLBACK fmodFileOpenCallback(const Char *fileName, Int unicode, uInt *filesize, Void **handle, Void **userdata);
-	static FMOD_RESULT F_CALLBACK fmodFileCloseCallback(Void *handle, Void *userdata);
-	static FMOD_RESULT F_CALLBACK fmodFileReadCallback(Void *handle, Void *buffer, uInt sizebytes, uInt *bytesread, Void *userdata);
-	static FMOD_RESULT F_CALLBACK fmodFileSeekCallback(Void *handle, uInt pos, Void *userdata);
-
-private:
-	
 };
 
 #endif
